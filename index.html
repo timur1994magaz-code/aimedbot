@@ -110,6 +110,18 @@
   :root[data-theme="dark"] .chip .dot svg{color:#08201d}
   :root[data-theme="light"] .chip .dot svg{color:#fff}
 
+  /* add-your-own */
+  .chip.add{border-style:dashed;color:var(--muted);font-weight:600}
+  .chip.add:hover{color:var(--accent);border-color:var(--accent);background:var(--surface-2)}
+  .chip.add .plus{width:16px;height:16px;display:grid;place-items:center;font-size:18px;line-height:1;font-weight:700;color:var(--accent-strong)}
+  .add-input{font-family:var(--font-body);font-size:14.5px;color:var(--text);background:var(--surface);
+    border:1.5px solid var(--accent);border-radius:99px;padding:8px 15px;min-width:160px;outline:none;box-shadow:0 0 0 3px var(--ring)}
+  .add-input::placeholder{color:var(--faint)}
+  .chip.custom .rm{margin-left:3px;width:17px;height:17px;border-radius:50%;display:inline-grid;place-items:center;
+    font-size:11px;line-height:1;color:var(--muted);background:color-mix(in srgb,var(--text) 9%,transparent);cursor:pointer;transition:all .12s ease}
+  .chip.custom .rm:hover{color:#fff;background:var(--accent)}
+  :root[data-theme="dark"] .chip.custom .rm:hover{color:#062019}
+
   /* text inputs */
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
@@ -207,7 +219,7 @@
         <div class="field"><label>Основной телефон</label><input type="text" data-q="Телефон" placeholder="+7 ..."></div>
       </div></div>
       <div class="q"><span class="qlabel">Профиль клиники <span class="sub">— можно несколько</span></span>
-        <div class="chips" data-multi="Профиль">
+        <div class="chips" data-multi="Профиль" data-add="1">
           <!--CHIPS:Многопрофильная|Стоматология|Косметология|Педиатрия|Гинекология|Диагностический центр|Узкопрофильная-->
         </div>
       </div>
@@ -218,7 +230,7 @@
   <section class="card" data-title="Задачи бота">
     <div class="card-head"><span class="num">02</span><div><h2>Что должен делать бот</h2><p class="hint">Отметьте всё, что нужно.</p></div></div>
     <div class="card-body">
-      <div class="q"><div class="chips" data-multi="Задачи бота">
+      <div class="q"><div class="chips" data-multi="Задачи бота" data-add="1">
         <!--CHIPS:Отвечать на вопросы 24/7|Записывать на приём|Показывать свободные слоты|Консультировать по ценам|Подбирать врача по жалобе|Напоминать о приёме|Возвращать пациентов-->
       </div></div>
     </div>
@@ -240,7 +252,7 @@
   <section class="card" data-title="Услуги">
     <div class="card-head"><span class="num">04</span><div><h2>Услуги и направления</h2><p class="hint">Что вы предлагаете пациентам.</p></div></div>
     <div class="card-body">
-      <div class="q"><div class="chips" data-multi="Услуги">
+      <div class="q"><div class="chips" data-multi="Услуги" data-add="1">
         <!--CHIPS:Приём специалистов|Диагностика|Анализы (лаборатория)|Вакцинация|Выезд врача на дом|Онлайн-консультации|Чек-апы / программы|Дневной стационар|Справки и документы|Стоматология|Косметология|Физиотерапия и реабилитация-->
       </div></div>
       <div class="q"><span class="qlabel">Детское направление есть?</span>
@@ -254,7 +266,7 @@
   <section class="card" data-title="Диагностика">
     <div class="card-head"><span class="num">05</span><div><h2>Диагностика</h2><p class="hint">Какие исследования делаете на месте.</p></div></div>
     <div class="card-body">
-      <div class="q"><div class="chips" data-multi="Диагностика">
+      <div class="q"><div class="chips" data-multi="Диагностика" data-add="1">
         <!--CHIPS:УЗИ|УЗИ 3D/4D|ЭКГ / ЭЭГ / Холтер|Рентген|Маммография|КТ|МРТ|Эндоскопия|Денситометрия|Функция дыхания (ФВД)-->
       </div></div>
     </div>
@@ -411,6 +423,37 @@
 (function(){
   var CHECK='<svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5 10 17l9-10" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   var uid=0;
+
+  function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function addCustomChip(box,label,checked){
+    var group=box.getAttribute('data-multi')||box.getAttribute('data-single');
+    var type=box.getAttribute('data-multi')?'checkbox':'radio';
+    var ex=box.querySelector('.chip input[data-group="'+CSS.escape(group)+'"][data-val="'+CSS.escape(label)+'"]');
+    if(ex){ex.checked=true;return ex;}
+    uid++;
+    var lab=document.createElement('label');
+    lab.className='chip custom '+(type==='radio'?'rad':'');
+    lab.innerHTML='<input type="'+type+'" name="'+(type==='radio'?group.replace(/[^a-zа-я0-9]/gi,'_'):'m'+uid)+'" data-group="'+esc(group)+'" data-val="'+esc(label)+'" data-custom="1"'+(checked?' checked':'')+'><span class="dot">'+CHECK+'</span>'+esc(label)+'<span class="rm" title="Удалить" role="button" aria-label="Удалить">✕</span>';
+    var addBtn=box.querySelector('.chip.add');
+    box.insertBefore(lab,addBtn);
+    lab.querySelector('.rm').addEventListener('click',function(e){e.preventDefault();e.stopPropagation();lab.remove();if(typeof save==='function')save();});
+    return lab.querySelector('input');
+  }
+  function openAddInput(box,b){
+    var ex=box.querySelector('.add-input'); if(ex){ex.focus();return;}
+    var inp=document.createElement('input'); inp.type='text'; inp.className='add-input'; inp.placeholder='Свой вариант…';
+    box.insertBefore(inp,b); inp.focus();
+    var done=false;
+    function commit(){ if(done)return; done=true; var v=inp.value.trim(); if(v)addCustomChip(box,v,true); if(inp.parentNode)inp.remove(); if(typeof save==='function')save(); }
+    inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){e.preventDefault();commit();} else if(e.key==='Escape'){done=true;inp.remove();} });
+    inp.addEventListener('blur',commit);
+  }
+  function makeAddButton(box){
+    var b=document.createElement('button'); b.type='button'; b.className='chip add';
+    b.innerHTML='<span class="plus" aria-hidden="true">+</span>Добавить своё';
+    b.addEventListener('click',function(){openAddInput(box,b);});
+    box.appendChild(b);
+  }
   // build chips from comment placeholders
   document.querySelectorAll('.chips').forEach(function(box){
     var multi=box.getAttribute('data-multi'); var single=box.getAttribute('data-single');
@@ -429,12 +472,13 @@
           var gname=name.replace(/[^a-zа-я0-9]/gi,'_')+(type==='radio'?'_g':'_'+uid);
           html+='<label class="chip '+(type==='radio'?'rad':'')+'">'
             +'<input type="'+type+'" name="'+(type==='radio'?name.replace(/[^a-zа-я0-9]/gi,'_'):'m'+uid)+'" '
-            +'data-group="'+name+'" data-val="'+lbl.replace(/"/g,'&quot;')+'" '+(pre?'checked':'')+'>'
+            +'data-group="'+name+'" data-val="'+lbl.replace(/"/g,'&quot;')+'" '+(pre?'checked data-default="1"':'')+'>'
             +'<span class="dot">'+CHECK+'</span>'+lbl+'</label>';
         });
       }
     });
     box.innerHTML=html;
+    if(box.hasAttribute('data-add')) makeAddButton(box);
   });
 
   var form=document.getElementById('brief');
@@ -452,7 +496,10 @@
     try{var d=JSON.parse(raw);
       Object.keys(d.inputs||{}).forEach(function(q){var el=form.querySelector('[data-q="'+CSS.escape(q)+'"]'); if(el)el.value=d.inputs[q];});
       (d.checks||[]).forEach(function(s){var i=s.indexOf('||');var g=s.slice(0,i),v=s.slice(i+2);
-        var el=form.querySelector('.chip input[data-group="'+CSS.escape(g)+'"][data-val="'+CSS.escape(v)+'"]'); if(el)el.checked=true;});
+        var el=form.querySelector('.chip input[data-group="'+CSS.escape(g)+'"][data-val="'+CSS.escape(v)+'"]');
+        if(el){el.checked=true;return;}
+        var box=form.querySelector('.chips[data-add][data-multi="'+CSS.escape(g)+'"]')||form.querySelector('.chips[data-add][data-single="'+CSS.escape(g)+'"]');
+        if(box)addCustomChip(box,v,true);});
     }catch(e){}
   }
 
@@ -522,9 +569,9 @@
   document.getElementById('reset').addEventListener('click',function(){
     if(!confirm('Очистить все ответы?'))return;
     try{localStorage.removeItem(KEY);}catch(e){}
+    form.querySelectorAll('.chip.custom').forEach(function(l){l.remove();});
     form.querySelectorAll('input,textarea').forEach(function(el){ if(el.type==='checkbox'||el.type==='radio')el.checked=false; else el.value=''; });
-    // restore pre-checked
-    form.querySelectorAll('.chip input').forEach(function(el){});
+    form.querySelectorAll('.chip input[data-default]').forEach(function(el){el.checked=true;});
     progress(); toast('Очищено');
   });
 
