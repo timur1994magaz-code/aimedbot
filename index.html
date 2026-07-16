@@ -139,6 +139,24 @@
   .note{font-size:13px;color:var(--faint);margin-top:10px;display:flex;gap:7px;align-items:flex-start}
   .note svg{flex:none;margin-top:2px;color:var(--accent)}
 
+  /* repeater (доктор+цена / услуга+цена) */
+  .repeater{display:flex;flex-direction:column;gap:8px}
+  .repeater:empty{display:none}
+  .rep-row{display:grid;grid-template-columns:1fr 130px 38px;gap:8px;align-items:center}
+  @media(max-width:560px){.rep-row{grid-template-columns:1fr 92px 34px}}
+  .rep-row input{width:100%;font-family:var(--font-body);font-size:15px;color:var(--text);
+    background:var(--surface-2);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;transition:all .15s ease}
+  .rep-row input::placeholder{color:var(--faint)}
+  .rep-row input:focus{outline:none;border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 3px var(--ring)}
+  .rep-row .rep-price{font-family:var(--font-data);font-variant-numeric:tabular-nums}
+  .rep-del{border:none;background:transparent;color:var(--faint);cursor:pointer;font-size:15px;width:38px;height:38px;
+    border-radius:9px;transition:all .12s ease;flex:none}
+  .rep-del:hover{color:#fff;background:var(--accent)}
+  :root[data-theme="dark"] .rep-del:hover{color:#062019}
+  .btn-add-row{margin-top:10px;font-family:var(--font-body);font-size:14px;font-weight:600;color:var(--accent-strong);
+    background:transparent;border:1.5px dashed var(--border-strong);border-radius:99px;padding:9px 16px;cursor:pointer;transition:all .15s ease}
+  .btn-add-row:hover{border-color:var(--accent);background:var(--surface-2)}
+
   /* action bar */
   .actionbar{position:fixed;left:0;right:0;bottom:0;z-index:50;
     background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(12px);
@@ -169,10 +187,21 @@
 
   footer.foot{text-align:center;color:var(--faint);font-size:13px;padding:34px 0 10px}
 
+  #printview{display:none}
   @media print{
-    .progress-bar,.actionbar,.theme-toggle{display:none}
-    body{padding-bottom:0}
-    section.card{box-shadow:none;break-inside:avoid}
+    .progress-bar,.actionbar,.theme-toggle,header.hero,#brief,footer.foot{display:none!important}
+    body{padding-bottom:0;background:#fff;color:#111}
+    .wrap{max-width:100%;padding:0}
+    #printview{display:block}
+    #printview .pv-title{font-family:var(--font-head);font-size:23px;margin:0 0 2px;color:#0A6F62}
+    #printview .pv-meta{color:#555;font-size:12px;margin:0 0 16px}
+    #printview .pv-sec{margin-bottom:14px;break-inside:avoid}
+    #printview .pv-sec h2{font-family:var(--font-head);font-size:14px;color:#0A6F62;
+      border-bottom:1.5px solid #0A6F62;padding-bottom:3px;margin:0 0 6px}
+    #printview table{width:100%;border-collapse:collapse}
+    #printview td{vertical-align:top;padding:4px 6px;border-bottom:1px solid #dcdcdc;font-size:12.5px;color:#111}
+    #printview .pv-k{width:38%;font-weight:600;color:#333}
+    #printview .pv-empty{color:#777}
   }
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
@@ -287,6 +316,14 @@
           <div class="field price"><label>Детский ₽</label><input inputmode="numeric" data-q="Детский приём ₽" placeholder="2530"></div>
         </div>
       </div>
+      <div class="q"><span class="qlabel">Врачи и цены приёма <span class="sub">— добавьте врача/специализацию и стоимость</span></span>
+        <div class="repeater" data-rep="Врачи и цены" data-ph1="Врач / специализация" data-ph2="Цена, ₽"></div>
+        <button type="button" class="btn-add-row" data-rep-add="Врачи и цены">+ Добавить врача</button>
+      </div>
+      <div class="q"><span class="qlabel">Услуги и цены <span class="sub">— добавьте услугу и стоимость</span></span>
+        <div class="repeater" data-rep="Услуги и цены" data-ph1="Услуга" data-ph2="Цена, ₽"></div>
+        <button type="button" class="btn-add-row" data-rep-add="Услуги и цены">+ Добавить услугу</button>
+      </div>
       <div class="q"><span class="qlabel">Бот может называть точные цены?</span>
         <div class="chips" data-single="Бот называет цены">
           <!--RADIO:Да, все|Да, кроме некоторых|Только «от …»|Нет, отправлять к оператору-->
@@ -399,6 +436,7 @@
   </form>
 
   <footer class="foot">Бриф AI-ассистента клиники · заполняется галочками · данные сохраняются только в вашем браузере</footer>
+  <div id="printview" aria-hidden="true"></div>
 </div>
 
 <div class="actionbar">
@@ -454,6 +492,19 @@
     b.addEventListener('click',function(){openAddInput(box,b);});
     box.appendChild(b);
   }
+  function repEl(name){ return document.querySelector('.repeater[data-rep="'+CSS.escape(name)+'"]'); }
+  function addRepRow(rep,name,price,focus){
+    if(!rep)return;
+    var row=document.createElement('div'); row.className='rep-row';
+    var i1=document.createElement('input'); i1.className='rep-name'; i1.placeholder=rep.getAttribute('data-ph1')||'Название'; i1.value=name||'';
+    var i2=document.createElement('input'); i2.className='rep-price'; i2.inputMode='numeric'; i2.placeholder=rep.getAttribute('data-ph2')||'₽'; i2.value=price||'';
+    var del=document.createElement('button'); del.type='button'; del.className='rep-del'; del.textContent='✕'; del.title='Удалить';
+    del.addEventListener('click',function(){row.remove();if(typeof save==='function')save();});
+    row.appendChild(i1); row.appendChild(i2); row.appendChild(del);
+    rep.appendChild(row);
+    if(focus)i1.focus();
+    return row;
+  }
   // build chips from comment placeholders
   document.querySelectorAll('.chips').forEach(function(box){
     var multi=box.getAttribute('data-multi'); var single=box.getAttribute('data-single');
@@ -485,9 +536,14 @@
   var KEY='clinic_brief_v1';
 
   function save(){
-    var d={inputs:{},checks:[]};
+    var d={inputs:{},checks:[],reps:{}};
     form.querySelectorAll('input[data-q],textarea[data-q]').forEach(function(el){ if(el.value) d.inputs[el.getAttribute('data-q')]=el.value; });
     form.querySelectorAll('.chip input:checked').forEach(function(el){ d.checks.push(el.getAttribute('data-group')+'||'+el.getAttribute('data-val')); });
+    form.querySelectorAll('.repeater').forEach(function(rep){
+      var rows=[];
+      rep.querySelectorAll('.rep-row').forEach(function(r){var n=r.querySelector('.rep-name').value,p=r.querySelector('.rep-price').value; if(n||p)rows.push([n,p]);});
+      if(rows.length)d.reps[rep.getAttribute('data-rep')]=rows;
+    });
     try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){}
     progress();
   }
@@ -500,6 +556,7 @@
         if(el){el.checked=true;return;}
         var box=form.querySelector('.chips[data-add][data-multi="'+CSS.escape(g)+'"]')||form.querySelector('.chips[data-add][data-single="'+CSS.escape(g)+'"]');
         if(box)addCustomChip(box,v,true);});
+      Object.keys(d.reps||{}).forEach(function(rn){var rep=repEl(rn); if(rep)d.reps[rn].forEach(function(pr){addRepRow(rep,pr[0],pr[1],false);});});
     }catch(e){}
   }
 
@@ -511,6 +568,7 @@
     var seen={};
     form.querySelectorAll('.chip input').forEach(function(el){ seen[el.getAttribute('data-group')]=true; });
     Object.keys(seen).forEach(function(g){ total++; if(form.querySelector('.chip input[data-group="'+CSS.escape(g)+'"]:checked'))done++; });
+    form.querySelectorAll('.repeater').forEach(function(rep){ total++; var f=false; rep.querySelectorAll('.rep-name').forEach(function(i){if(i.value.trim())f=true;}); if(f)done++; });
     var pct=total?Math.round(done/total*100):0;
     document.getElementById('fill').style.width=pct+'%';
     document.getElementById('pct').textContent=pct+'%';
@@ -519,34 +577,61 @@
   form.addEventListener('input',save);
   form.addEventListener('change',save);
 
-  function build(){
-    var out=[]; var name=(form.querySelector('[data-q="Название"]')||{}).value||'клиника';
-    out.push('БРИФ AI-АССИСТЕНТА КЛИНИКИ');
-    out.push('='.repeat(34));
-    out.push('');
+  function collect(){
+    var sections=[];
     document.querySelectorAll('section.card').forEach(function(sec){
-      var title=sec.getAttribute('data-title');
-      var lines=[];
-      sec.querySelectorAll('.q').forEach(function(){});
-      // inputs
+      var items=[];
       sec.querySelectorAll('input[data-q],textarea[data-q]').forEach(function(el){
-        if(el.value.trim()){
-          var v=el.value.trim().replace(/\n/g,'; ');
-          lines.push('  • '+el.getAttribute('data-q')+': '+v);
-        }
+        if(el.value.trim()) items.push({label:el.getAttribute('data-q'),value:el.value.trim()});
       });
-      // chip groups
       var groups={};
       sec.querySelectorAll('.chip input:checked').forEach(function(el){
         var g=el.getAttribute('data-group'); (groups[g]=groups[g]||[]).push(el.getAttribute('data-val'));
       });
-      Object.keys(groups).forEach(function(g){ lines.push('  • '+g+': '+groups[g].join(', ')); });
-      if(lines.length){ out.push('▸ '+title.toUpperCase()); out.push.apply(out,lines); out.push(''); }
+      Object.keys(groups).forEach(function(g){ items.push({label:g,value:groups[g].join(', ')}); });
+      sec.querySelectorAll('.repeater').forEach(function(rep){
+        var rows=[];
+        rep.querySelectorAll('.rep-row').forEach(function(r){
+          var n=r.querySelector('.rep-name').value.trim(), p=r.querySelector('.rep-price').value.trim();
+          if(n||p) rows.push((n||'—')+(p?' — '+p+' ₽':''));
+        });
+        if(rows.length) items.push({label:rep.getAttribute('data-rep'),value:rows,list:true});
+      });
+      if(items.length) sections.push({title:sec.getAttribute('data-title'),items:items});
     });
-    var d=new Date();
-    out.push('—'.repeat(17));
-    out.push('Заполнено: '+d.toLocaleDateString('ru-RU')+' '+d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}));
+    return sections;
+  }
+  function stamp(){ var d=new Date(); return d.toLocaleDateString('ru-RU')+' '+d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}); }
+  function build(){
+    var name=(form.querySelector('[data-q="Название"]')||{}).value||'клиника';
+    var out=['БРИФ AI-АССИСТЕНТА КЛИНИКИ','='.repeat(34),''];
+    collect().forEach(function(s){
+      out.push('▸ '+s.title.toUpperCase());
+      s.items.forEach(function(it){
+        if(it.list){ out.push('  • '+it.label+':'); it.value.forEach(function(v){out.push('     – '+v);}); }
+        else out.push('  • '+it.label+': '+String(it.value).replace(/\n/g,'; '));
+      });
+      out.push('');
+    });
+    out.push('—'.repeat(17)); out.push('Заполнено: '+stamp());
     return {text:out.join('\n'),name:name};
+  }
+  function renderPrint(){
+    var pv=document.getElementById('printview');
+    var name=(form.querySelector('[data-q="Название"]')||{}).value||'';
+    var secs=collect();
+    var h='<h1 class="pv-title">Бриф AI-ассистента клиники</h1>';
+    h+='<div class="pv-meta">'+(name?('<b>'+esc(name)+'</b> · '):'')+'заполнено '+esc(stamp())+'</div>';
+    if(!secs.length){ h+='<p class="pv-empty">Пока ничего не отмечено.</p>'; pv.innerHTML=h; return; }
+    secs.forEach(function(s){
+      h+='<div class="pv-sec"><h2>'+esc(s.title)+'</h2><table>';
+      s.items.forEach(function(it){
+        var val = it.list ? it.value.map(function(v){return esc(v);}).join('<br>') : esc(String(it.value)).replace(/\n/g,'<br>');
+        h+='<tr><td class="pv-k">'+esc(it.label)+'</td><td class="pv-v">'+val+'</td></tr>';
+      });
+      h+='</table></div>';
+    });
+    pv.innerHTML=h;
   }
 
   function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
@@ -565,11 +650,16 @@
     else fallbackCopy(b.text);
   });
   function fallbackCopy(t){var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('Скопировано ✓');}catch(e){toast('Не удалось скопировать');}ta.remove();}
-  document.getElementById('print').addEventListener('click',function(){window.print();});
+  document.getElementById('print').addEventListener('click',function(){renderPrint();setTimeout(function(){window.print();},30);});
+  window.addEventListener('beforeprint',renderPrint);
+  document.querySelectorAll('.btn-add-row').forEach(function(b){
+    b.addEventListener('click',function(){ addRepRow(repEl(b.getAttribute('data-rep-add')),'','',true); });
+  });
   document.getElementById('reset').addEventListener('click',function(){
     if(!confirm('Очистить все ответы?'))return;
     try{localStorage.removeItem(KEY);}catch(e){}
     form.querySelectorAll('.chip.custom').forEach(function(l){l.remove();});
+    form.querySelectorAll('.rep-row').forEach(function(r){r.remove();});
     form.querySelectorAll('input,textarea').forEach(function(el){ if(el.type==='checkbox'||el.type==='radio')el.checked=false; else el.value=''; });
     form.querySelectorAll('.chip input[data-default]').forEach(function(el){el.checked=true;});
     progress(); toast('Очищено');
