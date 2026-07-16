@@ -443,13 +443,10 @@
   <div class="wrap">
     <button type="button" class="btn primary" id="download">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span>Скачать бриф</span></button>
+      <span>Скачать бриф (PDF)</span></button>
     <button type="button" class="btn" id="copy">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="11" height="11" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="1.8"/></svg>
       <span class="label-lg">Скопировать</span></button>
-    <button type="button" class="btn" id="print">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 9V3h12v6M6 18H4v-6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6h-2M8 14h8v7H8z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
-      <span class="label-lg">PDF / печать</span></button>
     <div class="spacer"></div>
     <button type="button" class="btn ghost" id="reset">Очистить</button>
   </div>
@@ -637,20 +634,22 @@
   function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
     clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show');},1900);}
 
-  document.getElementById('download').addEventListener('click',function(){
-    var b=build(); var blob=new Blob([b.text],{type:'text/plain;charset=utf-8'});
-    var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-    a.download='Бриф_'+b.name.replace(/[^\wа-яё\- ]/gi,'').trim().replace(/\s+/g,'_')+'.txt';
-    document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
-    toast('Файл скачан ✓');
-  });
+  var _oldTitle=null;
+  window.addEventListener('afterprint',function(){ if(_oldTitle!=null){document.title=_oldTitle;_oldTitle=null;} });
+  function saveAsPDF(){
+    renderPrint();
+    var name=(form.querySelector('[data-q="Название"]')||{}).value||'клиника';
+    _oldTitle=document.title; document.title='Бриф '+name.replace(/[\\/:*?"<>|]/g,' ').trim();
+    toast('Выберите «Сохранить как PDF»');
+    setTimeout(function(){ window.print(); },50);
+  }
+  document.getElementById('download').addEventListener('click',saveAsPDF);
   document.getElementById('copy').addEventListener('click',function(){
     var b=build();
     if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(b.text).then(function(){toast('Скопировано ✓');},function(){fallbackCopy(b.text);});}
     else fallbackCopy(b.text);
   });
   function fallbackCopy(t){var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('Скопировано ✓');}catch(e){toast('Не удалось скопировать');}ta.remove();}
-  document.getElementById('print').addEventListener('click',function(){renderPrint();setTimeout(function(){window.print();},30);});
   window.addEventListener('beforeprint',renderPrint);
   document.querySelectorAll('.btn-add-row').forEach(function(b){
     b.addEventListener('click',function(){ addRepRow(repEl(b.getAttribute('data-rep-add')),'','',true); });
