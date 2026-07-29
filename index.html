@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Бриф AI-ассистента клиники</title>
 <style>*{margin:0;padding:0}img{max-width:100%}</style>
+<script src="jspdf.umd.min.js" defer></script>
+<script src="pdf-font.js" defer></script>
 </head>
 <body>
 <title>Бриф AI-ассистента клиники</title>
@@ -636,12 +638,43 @@
 
   var _oldTitle=null;
   window.addEventListener('afterprint',function(){ if(_oldTitle!=null){document.title=_oldTitle;_oldTitle=null;} });
+  // Прямая генерация PDF без диалога печати (jsPDF + кириллический шрифт).
   function saveAsPDF(){
-    renderPrint();
+    if(!window.jspdf||!window.jspdf.jsPDF){ toast('PDF ещё загружается, нажмите ещё раз'); return; }
+    var doc=new window.jspdf.jsPDF({unit:'mm',format:'a4'});
+    if(window.__registerPdfFont) window.__registerPdfFont(doc);
+    try{ doc.setFont('DejaVu','normal'); }catch(e){}
     var name=(form.querySelector('[data-q="Название"]')||{}).value||'клиника';
-    _oldTitle=document.title; document.title='Бриф '+name.replace(/[\\/:*?"<>|]/g,' ').trim();
-    toast('Выберите «Сохранить как PDF»');
-    setTimeout(function(){ window.print(); },50);
+    var M=15, right=210-M, ph=297, y=M;
+    function room(h){ if(y+h>ph-M){ doc.addPage(); y=M; } }
+    doc.setTextColor(10,111,98); doc.setFontSize(18);
+    doc.text('Бриф AI-ассистента клиники', M, y); y+=8;
+    doc.setTextColor(90,90,90); doc.setFontSize(10);
+    doc.text((name?name+' · ':'')+'заполнено '+stamp(), M, y); y+=9;
+    var secs=collect();
+    if(!secs.length){ doc.setTextColor(90,90,90); doc.setFontSize(11); doc.text('Пока ничего не отмечено.', M, y); }
+    var vx=M+56, vw=right-vx;
+    secs.forEach(function(s){
+      room(14);
+      doc.setTextColor(10,111,98); doc.setFontSize(12.5);
+      doc.text(String(s.title), M, y); y+=2;
+      doc.setDrawColor(10,111,98); doc.setLineWidth(0.3); doc.line(M,y,right,y); y+=5;
+      doc.setFontSize(10.5);
+      s.items.forEach(function(it){
+        var valLines=[];
+        if(it.list){ it.value.forEach(function(v){ doc.splitTextToSize('• '+String(v), vw).forEach(function(l){valLines.push(l);}); }); }
+        else { valLines=doc.splitTextToSize(String(it.value).replace(/\n/g,'  '), vw); }
+        var labLines=doc.splitTextToSize(String(it.label), 52);
+        var rows=Math.max(labLines.length, valLines.length), rh=rows*4.6+3;
+        room(rh);
+        doc.setTextColor(70,70,70); labLines.forEach(function(l,i){ doc.text(l, M, y+i*4.6+3); });
+        doc.setTextColor(17,17,17); valLines.forEach(function(l,i){ doc.text(l, vx, y+i*4.6+3); });
+        y+=rh;
+        doc.setDrawColor(224,224,224); doc.setLineWidth(0.2); doc.line(M,y,right,y);
+      });
+      y+=5;
+    });
+    doc.save('Бриф '+name.replace(/[\\/:*?"<>|]/g,' ').trim()+'.pdf');
   }
   document.getElementById('download').addEventListener('click',saveAsPDF);
   document.getElementById('copy').addEventListener('click',function(){
